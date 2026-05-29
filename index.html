@@ -1,71 +1,113 @@
 <!doctype html>
 <html lang="hi">
 <head>
-  <link rel="manifest" href="manifest.json">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sharee Khatu Shayam Genral Store - Admin</title>
+  <title>Shree Khatu Shayam General Store</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#102a43">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand"><div class="logo">🛒</div><div><h1>Sharee Khatu Shayam</h1><p>Genral Store</p></div></div>
-    <button class="nav active" data-page="dashboard">Dashboard</button>
-    <button class="nav" data-page="billing">Billing / Invoice</button>
-    <button class="nav" data-page="products">Products</button>
-    <button class="nav" data-page="purchase">Purchase</button>
-    <button class="nav" data-page="admin">Admin Panel</button>
-    <button class="nav" data-page="reports">Daily Reports</button>
-    <button class="nav" data-page="settings">Settings</button>
-  </aside>
-  <main class="main">
-    <header class="topbar"><div><h2 id="pageTitle">Dashboard</h2><span id="today"></span></div><div class="store-pill">Sharee Khatu Shayam Genral Store</div></header>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icon-192.png" alt="logo">
+      <div><h1>Shree Khatu Shayam General Store</h1><p>Billing • Stock • Purchase • Profit/Loss</p></div>
+    </div>
+    <button class="ghost" onclick="window.print()">Print</button>
+  </header>
 
+  <nav class="tabs">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="billing">Billing</button>
+    <button class="tab" data-tab="products">Products</button>
+    <button class="tab" data-tab="purchase">Purchase</button>
+    <button class="tab" data-tab="reports">Reports</button>
+    <button class="tab" data-tab="admin">Admin</button>
+  </nav>
+
+  <main>
     <section id="dashboard" class="page active">
-      <div class="cards"><div class="card"><p>Products</p><h3 id="totalProducts">0</h3></div><div class="card"><p>Stock Value</p><h3 id="stockValue">₹0</h3></div><div class="card"><p>Today Sale</p><h3 id="todaySale">₹0</h3></div><div class="card"><p>Today Profit</p><h3 id="todayProfit">₹0</h3></div></div>
-      <div class="panel"><h3>Low Stock Alert</h3><div id="lowStock"></div></div>
+      <div class="cards">
+        <div class="card"><span>आज की Sale</span><b id="todaySale">₹0</b></div>
+        <div class="card"><span>आज का Profit</span><b id="todayProfit">₹0</b></div>
+        <div class="card"><span>Total Products</span><b id="totalProducts">0</b></div>
+        <div class="card"><span>Stock Value</span><b id="stockValue">₹0</b></div>
+      </div>
+      <div class="panel"><h2>Low Stock</h2><div id="lowStock"></div></div>
     </section>
 
     <section id="billing" class="page">
-      <div class="billing-layout">
-        <div class="panel"><h3>Super Mart Billing Counter</h3><div class="grid two"><input id="customerName" placeholder="Customer Name"><input id="customerMobile" placeholder="Mobile Number"></div>
-          <div class="bill-add-row"><select id="billProduct"></select><input id="billQty" type="number" min="1" value="1" placeholder="Qty"><input id="billRate" type="number" min="0" placeholder="Rate"><button onclick="addToCart()">Add</button></div>
-          <table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th><th></th></tr></thead><tbody id="cartRows"></tbody></table>
+      <div class="grid2">
+        <div class="panel">
+          <h2>Sales / Bill Entry</h2>
+          <label>Customer Name <input id="customerName" placeholder="Customer name"></label>
+          <label>Mobile <input id="customerMobile" placeholder="Mobile"></label>
+          <div class="line">
+            <select id="saleProduct"></select>
+            <input id="saleQty" type="number" min="1" value="1" placeholder="Qty">
+            <input id="saleRate" type="number" min="0" placeholder="Rate">
+            <button onclick="addToCart()">Add</button>
+          </div>
+          <table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th><th></th></tr></thead><tbody id="cartBody"></tbody></table>
+          <h3 class="right">Total: <span id="cartTotal">₹0</span></h3>
+          <button class="primary" onclick="saveSale()">Save & Print Invoice</button>
         </div>
-        <div class="invoice-box" id="invoiceBox"><h2>Sharee Khatu Shayam Genral Store</h2><p class="muted">Super Mart Invoice</p><p><b>Customer:</b> <span id="invCustomer">Walk-in</span></p><p><b>Mobile:</b> <span id="invMobile">-</span></p><p><b>Date:</b> <span id="invDate"></span></p><hr><div id="invoiceItems"></div><hr><div class="total-line"><span>Grand Total</span><b id="grandTotal">₹0</b></div><p class="thanks">Thank you, visit again!</p><button class="print-btn" onclick="saveSaleAndPrint()">Save & Print Invoice</button></div>
+        <div class="panel invoice" id="invoiceBox"><h2>Invoice Preview</h2><p>Bill save करने के बाद invoice यहां दिखेगा।</p></div>
       </div>
     </section>
 
     <section id="products" class="page">
-      <div class="panel"><h3>Add / Edit Product</h3><div class="grid five"><input id="pName" placeholder="Product Name"><input id="pCategory" placeholder="Category"><input id="pPurchase" type="number" placeholder="Purchase Rate"><input id="pSale" type="number" placeholder="Sale Rate"><input id="pStock" type="number" placeholder="Opening Stock"></div><button onclick="saveProduct()">Save Product</button><button class="ghost" onclick="clearProductForm()">Clear</button></div>
-      <div class="panel"><h3>Product List</h3><input id="productSearch" placeholder="Search product..." oninput="render()"><div id="productCards" class="product-grid"></div></div>
+      <div class="panel">
+        <h2>Add / Edit Product</h2>
+        <input type="hidden" id="productId">
+        <div class="formgrid">
+          <label>Product Name <input id="pName" placeholder="Aata 5kg"></label>
+          <label>Category <input id="pCat" placeholder="Grocery"></label>
+          <label>Purchase Rate <input id="pBuy" type="number" min="0"></label>
+          <label>Sale Rate <input id="pSell" type="number" min="0"></label>
+          <label>Opening Stock <input id="pStock" type="number" min="0" value="0"></label>
+          <label>Low Stock Alert <input id="pLow" type="number" min="0" value="5"></label>
+        </div>
+        <button class="primary" onclick="saveProduct()">Save Product</button>
+        <button onclick="clearProductForm()">Clear</button>
+      </div>
+      <div class="panel"><h2>Product List</h2><input class="search" id="productSearch" oninput="renderAll()" placeholder="Search product..."><div class="tablewrap"><table><thead><tr><th>Name</th><th>Category</th><th>Buy</th><th>Sell</th><th>Stock</th><th>Action</th></tr></thead><tbody id="productBody"></tbody></table></div></div>
     </section>
 
     <section id="purchase" class="page">
-      <div class="panel"><h3>Purchase Entry</h3><div class="grid five"><select id="purchaseProduct"></select><input id="supplier" placeholder="Supplier Name"><input id="purchaseQty" type="number" placeholder="Qty"><input id="purchaseRate" type="number" placeholder="Purchase Rate"><button onclick="savePurchase()">Add Purchase</button></div></div>
-      <div class="panel"><h3>Purchase History</h3><table><thead><tr><th>Date</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Rate</th><th>Total</th><th>Action</th></tr></thead><tbody id="purchaseRows"></tbody></table></div>
-    </section>
-
-    <section id="admin" class="page">
-      <div class="cards"><div class="card"><p>Total Sales</p><h3 id="adminSales">₹0</h3></div><div class="card"><p>Total Purchase</p><h3 id="adminPurchase">₹0</h3></div><div class="card"><p>Total Profit</p><h3 id="adminProfit">₹0</h3></div><div class="card"><p>Invoices</p><h3 id="adminInvoices">0</h3></div></div>
-      <div class="panel"><h3>Admin Controls</h3><div class="admin-actions"><button onclick="showPage('products','Products')">Edit Products</button><button onclick="showPage('purchase','Purchase')">Manage Purchase</button><button onclick="printCurrentReport()">Print Daily Report</button><button onclick="downloadCSV('sales')">Export Sales CSV</button><button onclick="downloadCSV('purchase')">Export Purchase CSV</button></div></div>
-      <div class="panel"><h3>All Sales / Invoice Edit</h3><table><thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th>Action</th></tr></thead><tbody id="adminSalesRows"></tbody></table></div>
+      <div class="panel">
+        <h2>Purchase Entry</h2>
+        <div class="formgrid">
+          <label>Supplier <input id="supplier" placeholder="Supplier name"></label>
+          <label>Product <select id="purchaseProduct"></select></label>
+          <label>Qty <input id="purchaseQty" type="number" min="1" value="1"></label>
+          <label>Rate <input id="purchaseRate" type="number" min="0"></label>
+        </div>
+        <button class="primary" onclick="savePurchase()">Save Purchase</button>
+      </div>
+      <div class="panel"><h2>Purchase History</h2><table><thead><tr><th>Date</th><th>Supplier</th><th>Product</th><th>Qty</th><th>Rate</th><th>Total</th><th>Action</th></tr></thead><tbody id="purchaseBody"></tbody></table></div>
     </section>
 
     <section id="reports" class="page">
-      <div class="panel"><h3>Daily Report</h3><div class="grid three"><input id="reportDate" type="date"><button onclick="render()">Show Report</button><button onclick="printCurrentReport()">Print Report</button></div></div>
-      <div id="reportPrintArea" class="panel report"><h2>Sharee Khatu Shayam Genral Store</h2><p>Daily Report: <b id="reportDateText"></b></p><div class="cards"><div class="card"><p>Sale</p><h3 id="reportSale">₹0</h3></div><div class="card"><p>Purchase</p><h3 id="reportPurchase">₹0</h3></div><div class="card"><p>Profit</p><h3 id="reportProfit">₹0</h3></div><div class="card"><p>Bills</p><h3 id="reportBills">0</h3></div></div><h3>Sales</h3><table><thead><tr><th>Time</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th></tr></thead><tbody id="reportSalesRows"></tbody></table><h3>Purchase</h3><table><thead><tr><th>Time</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Total</th></tr></thead><tbody id="reportPurchaseRows"></tbody></table></div>
+      <div class="panel no-print"><h2>Daily Report</h2><input id="reportDate" type="date"><button class="primary" onclick="renderReport()">Show Report</button><button onclick="printReport()">Print Report</button><button onclick="exportCSV()">Export CSV</button></div>
+      <div class="panel" id="reportBox"></div>
     </section>
 
-    <section id="settings" class="page"><div class="panel"><h3>Settings</h3><button onclick="seedDemo()">Demo Products Add</button><button class="danger" onclick="resetData()">Reset All Data</button></div></section>
+    <section id="admin" class="page">
+      <div class="panel adminHero"><h2>Professional Control Panel</h2><p>यहां से product, stock, purchase और sales का पूरा control मिलेगा। Data आपके mobile/browser में save रहता है। Demo data automatic load नहीं होगा।</p></div>
+      <div class="cards">
+        <button class="big" onclick="showTab('products')">Manage Products</button>
+        <button class="big" onclick="showTab('purchase')">Manage Purchase</button>
+        <button class="big" onclick="showTab('reports')">Daily Reports</button>
+        <button class="big danger" onclick="resetConfirm()">Reset All Data</button>
+      </div>
+      <div class="panel"><h2>Backup / Restore</h2><button onclick="downloadBackup()">Download Backup JSON</button><input type="file" id="restoreFile" accept="application/json" onchange="restoreBackup(event)"></div>
+    </section>
   </main>
-</div>
-<script src="app.js"></script>
-  <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
-</script>
+
+  <div id="printArea" class="print-area"></div>
+  <script src="app.js"></script>
+  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js');}</script>
 </body>
 </html>
