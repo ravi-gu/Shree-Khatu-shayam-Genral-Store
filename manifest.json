@@ -1,10 +1,11 @@
 {
   "name": "Shree Khatu Shayam General Store",
   "short_name": "SKS Store",
-  "start_url": "./index.html",
+  "description": "Shree Khatu Shayam General Store Billing and Inventory Management App",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1976d2",
+  "theme_color": "#0d6efd",
   "icons": [
     {
       "src": "icon-192.png",
