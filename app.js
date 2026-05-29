@@ -1,3 +1,36 @@
+const LOGIN_USERNAME = "admin";
+const LOGIN_PASSWORD = "1234";
+
+function checkLogin() {
+  const isLoggedIn = localStorage.getItem("sks_logged_in");
+
+  if (isLoggedIn === "yes") {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appContent").style.display = "block";
+  } else {
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appContent").style.display = "none";
+  }
+}
+
+function login() {
+  const user = document.getElementById("loginUser").value.trim();
+  const pass = document.getElementById("loginPass").value.trim();
+
+  if (user === LOGIN_USERNAME && pass === LOGIN_PASSWORD) {
+    localStorage.setItem("sks_logged_in", "yes");
+    checkLogin();
+  } else {
+    document.getElementById("loginMsg").innerText = "गलत Username या Password";
+  }
+}
+
+function logout() {
+  localStorage.removeItem("sks_logged_in");
+  checkLogin();
+}
+
+document.addEventListener("DOMContentLoaded", checkLogin);
 const KEY='SKS_STORE_REAL_DATA_V1';
 let data=JSON.parse(localStorage.getItem(KEY)||'null') || {products:[], purchases:[], sales:[]};
 let cart=[];
