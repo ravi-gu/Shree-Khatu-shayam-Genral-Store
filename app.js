@@ -1,80 +1,45 @@
-// नया प्रोडक्ट डेटाबेस में भेजने के लिए
-function addStoreItem(itemName, itemPrice) {
-    db.collection("sks_products").add({
-        name: itemName,
-        price: itemPrice,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-        console.log("सामान सुरक्षित सेव हो गया!");
-    })
-    .catch((error) => {
-        console.error("एरर आया: ", error);
-    });
-}
-// डेटाबेस से लाइव डेटा पढ़ना और स्क्रीन पर दिखाना
-db.collection("sks_products").orderBy("timestamp", "desc")
-.onSnapshot((snapshot) => {
-    let productHTML = "";
-    
-    snapshot.forEach((doc) => {
-        let product = doc.data();
-        
-        // यहाँ से आपके स्क्रीन की डिज़ाइन बनेगी
-        productHTML += `
-            <div class="product-card" style="border: 1px solid #ddd; padding: 10px; margin: 10px; border-radius: 8px;">
-                <h3>${product.name}</h3>
-                <p>कीमत: ₹${product.price}</p>
-            </div>
-        `;
-    });
-    
-    // यह index.html वाले 'product-list' div के अंदर डेटा डाल देगा
-    let container = document.getElementById("product-list");
-    if(container) {
-        container.innerHTML = productHTML;
-    }
-});
-const KEY='SKS_STORE_REAL_DATA_V1';
-let data=JSON.parse(localStorage.getItem(KEY)||'null') || {products:[], purchases:[], sales:[]};
-let cart=[];
-const rupee=n=>'₹'+(Number(n)||0).toFixed(2);
-const today=()=>new Date().toISOString().slice(0,10);
-const save=()=>{localStorage.setItem(KEY,JSON.stringify(data)); renderAll();};
-function showTab(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');let b=document.querySelector(`[data-tab="${id}"]`); if(b)b.classList.add('active'); if(id==='reports')renderReport();}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-function productById(id){return data.products.find(p=>p.id===id)}
-function fillSelects(){let opts='<option value="">Select Product</option>'+data.products.map(p=>`<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`).join(''); saleProduct.innerHTML=opts; purchaseProduct.innerHTML=opts;}
-saleProduct.onchange=()=>{let p=productById(saleProduct.value); saleRate.value=p?p.sell:0;};
-purchaseProduct.onchange=()=>{let p=productById(purchaseProduct.value); purchaseRate.value=p?p.buy:0;};
-function clearProductForm(){productId.value='';pName.value='';pCat.value='';pBuy.value='';pSell.value='';pStock.value=0;pLow.value=5;}
-function saveProduct(){let id=productId.value||Date.now().toString();let existing=productById(id);let p={id,name:pName.value.trim(),cat:pCat.value.trim(),buy:+pBuy.value||0,sell:+pSell.value||0,stock:+pStock.value||0,low:+pLow.value||0}; if(!p.name)return alert('Product name डालें'); if(existing){Object.assign(existing,p)}else data.products.push(p); clearProductForm(); save();}
-function editProduct(id){let p=productById(id); productId.value=p.id;pName.value=p.name;pCat.value=p.cat;pBuy.value=p.buy;pSell.value=p.sell;pStock.value=p.stock;pLow.value=p.low; showTab('products');}
-function delProduct(id){if(confirm('Product delete करें?')){data.products=data.products.filter(p=>p.id!==id);save();}}
-function renderProducts(){let q=(productSearch?.value||'').toLowerCase();productBody.innerHTML=data.products.filter(p=>p.name.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)).map(p=>`<tr><td>${p.name}</td><td>${p.cat}</td><td>${rupee(p.buy)}</td><td>${rupee(p.sell)}</td><td><span class="badge ${p.stock<=p.low?'red':''}">${p.stock}</span></td><td><button onclick="editProduct('${p.id}')">Edit</button> <button onclick="delProduct('${p.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="6">अभी कोई product नहीं है। अपना product add करें।</td></tr>';}
-function savePurchase(){let p=productById(purchaseProduct.value); if(!p)return alert('Product select करें'); let qty=+purchaseQty.value||0, rate=+purchaseRate.value||0; if(qty<=0)return alert('Qty सही डालें'); p.stock+=qty;p.buy=rate; data.purchases.push({id:Date.now().toString(),date:today(),supplier:supplier.value.trim(),pid:p.id,pname:p.name,qty,rate,total:qty*rate}); supplier.value='';purchaseQty.value=1;purchaseRate.value=''; save();}
-function delPurchase(id){let x=data.purchases.find(a=>a.id===id); if(!x)return; if(confirm('Purchase delete करें? Stock भी कम होगा।')){let p=productById(x.pid); if(p)p.stock-=x.qty; data.purchases=data.purchases.filter(a=>a.id!==id);save();}}
-function renderPurchases(){purchaseBody.innerHTML=[...data.purchases].reverse().map(x=>`<tr><td>${x.date}</td><td>${x.supplier||'-'}</td><td>${x.pname}</td><td>${x.qty}</td><td>${rupee(x.rate)}</td><td>${rupee(x.total)}</td><td><button onclick="delPurchase('${x.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="7">No purchase entry</td></tr>';}
-function addToCart(){let p=productById(saleProduct.value); if(!p)return alert('Product select करें'); let qty=+saleQty.value||0, rate=+saleRate.value||0; if(qty<=0)return alert('Qty सही डालें'); if(qty>p.stock)return alert('इतना stock available नहीं है'); cart.push({pid:p.id,name:p.name,qty,rate,buy:p.buy,total:qty*rate,profit:(rate-p.buy)*qty}); saleQty.value=1;saleRate.value='';saleProduct.value=''; renderCart();}
-function removeCartItem(n){cart.splice(n,1);renderCart();}
-function renderCart(){cartBody.innerHTML=cart.map((i,n)=>`<tr><td>${i.name}</td><td>${i.qty}</td><td>${rupee(i.rate)}</td><td>${rupee(i.total)}</td><td><button onclick="removeCartItem(${n})">X</button></td></tr>`).join(''); cartTotal.textContent=rupee(cart.reduce((s,i)=>s+i.total,0)); updateInvoicePreview();}
-function saveSale(){if(!cart.length)return alert('Cart खाली है'); for(const i of cart){let p=productById(i.pid); if(p)p.stock-=i.qty;} let sale={id:Date.now().toString(),date:today(),customer:customerName.value.trim(),mobile:customerMobile.value.trim(),items:[...cart],total:cart.reduce((s,i)=>s+i.total,0),profit:cart.reduce((s,i)=>s+i.profit,0)}; data.sales.push(sale); cart=[];customerName.value='';customerMobile.value='';save();renderCart();makeInvoice(sale); setTimeout(()=>printInvoice(sale),300);}
-function invoiceHTML(s){return `<div class="bill-print"><div class="bill-head"><h2>Shree Khatu Shayam General Store</h2><p>Cash Memo / Invoice</p></div><p><b>Invoice No:</b> ${s.id}<br><b>Date:</b> ${s.date}<br><b>Customer:</b> ${s.customer||'Cash'} ${s.mobile?'- '+s.mobile:''}</p><table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>${s.items.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td><td>${rupee(i.rate)}</td><td>${rupee(i.total)}</td></tr>`).join('')}</tbody></table><h2 class="right">Grand Total: ${rupee(s.total)}</h2><p class="thanks">धन्यवाद! फिर आइए।</p></div>`;}
-function makeInvoice(s){invoiceBox.innerHTML=invoiceHTML(s)+`<button class="primary no-print" onclick="printInvoiceById('${s.id}')">Print Invoice</button>`;}
-function updateInvoicePreview(){if(!cart.length){invoiceBox.innerHTML='<h2>Invoice Preview</h2><p>Product cart में add करते ही invoice preview यहां दिखेगा।</p>';return;} let draft={id:'Preview',date:today(),customer:customerName.value.trim(),mobile:customerMobile.value.trim(),items:[...cart],total:cart.reduce((s,i)=>s+i.total,0),profit:0}; invoiceBox.innerHTML=invoiceHTML(draft)+'<p class="no-print hint">Save & Print Invoice दबाने के बाद final bill save होगा।</p>';}
-function printContent(html){printArea.innerHTML=html;document.body.classList.add('printing');setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove('printing'),700)},200);}
-function printInvoice(s){printContent(invoiceHTML(s));}
-function printInvoiceById(id){let s=data.sales.find(x=>x.id===id); if(s)printInvoice(s);}
-function renderDashboard(){let d=today();let sales=data.sales.filter(s=>s.date===d);todaySale.textContent=rupee(sales.reduce((a,s)=>a+s.total,0));todayProfit.textContent=rupee(sales.reduce((a,s)=>a+s.profit,0));totalProducts.textContent=data.products.length;stockValue.textContent=rupee(data.products.reduce((a,p)=>a+p.stock*p.buy,0));lowStock.innerHTML=data.products.filter(p=>p.stock<=p.low).map(p=>`<p class="red"><b>${p.name}</b> - Stock ${p.stock}</p>`).join('')||'<p class="green">Low stock item नहीं है।</p>';}
-function renderReport(){let d=reportDate.value||today(); reportDate.value=d; let sales=data.sales.filter(s=>s.date===d), pur=data.purchases.filter(p=>p.date===d); let saleTotal=sales.reduce((a,s)=>a+s.total,0), profit=sales.reduce((a,s)=>a+s.profit,0), purTotal=pur.reduce((a,p)=>a+p.total,0); reportBox.innerHTML=`<h2>Daily Report - ${d}</h2><div class="cards"><div class="card"><span>Sales</span><b>${rupee(saleTotal)}</b></div><div class="card"><span>Purchase</span><b>${rupee(purTotal)}</b></div><div class="card"><span>Profit</span><b>${rupee(profit)}</b></div><div class="card"><span>Bills</span><b>${sales.length}</b></div></div><h3>Sales Bills</h3><table><thead><tr><th>Bill</th><th>Customer</th><th>Total</th><th>Profit</th></tr></thead><tbody>${sales.map(s=>`<tr><td>${s.id}</td><td>${s.customer||'Cash'}</td><td>${rupee(s.total)}</td><td>${rupee(s.profit)}</td></tr>`).join('')||'<tr><td colspan="4">No sales</td></tr>'}</tbody></table><h3>Purchases</h3><table><thead><tr><th>Supplier</th><th>Product</th><th>Qty</th><th>Total</th></tr></thead><tbody>${pur.map(p=>`<tr><td>${p.supplier||'-'}</td><td>${p.pname}</td><td>${p.qty}</td><td>${rupee(p.total)}</td></tr>`).join('')||'<tr><td colspan="4">No purchases</td></tr>'}</tbody></table>`;}
-function printReport(){showTab('reports'); renderReport(); printContent(reportBox.innerHTML);}
-function exportCSV(){let rows=['Type,Date,Name,Qty,Rate,Total'];data.purchases.forEach(p=>rows.push(`Purchase,${p.date},${p.pname},${p.qty},${p.rate},${p.total}`));data.sales.forEach(s=>s.items.forEach(i=>rows.push(`Sale,${s.date},${i.name},${i.qty},${i.rate},${i.total}`)));download('sks-report.csv',rows.join('\n'),'text/csv');}
-function downloadBackup(){download('sks-store-backup.json',JSON.stringify(data,null,2),'application/json');}
-function download(name,content,type){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
-function restoreBackup(e){let f=e.target.files[0]; if(!f)return; let r=new FileReader(); r.onload=()=>{try{data=JSON.parse(r.result);save();alert('Backup restore हो गया')}catch{alert('Invalid file')}}; r.readAsText(f);}
-function resetConfirm(){if(confirm('सारा data delete हो जाएगा. Continue?')){localStorage.removeItem(KEY);data={products:[],purchases:[],sales:[]};save();}}
-function renderAll(){fillSelects();renderProducts();renderPurchases();renderDashboard();}
-customerName.addEventListener('input', updateInvoicePreview);
-customerMobile.addEventListener('input', updateInvoicePreview);
-renderAll();
-updateInvoicePreview();
+const DEFAULT_LOGO='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="100%" height="100%" rx="100" fill="%23fff4d6"/><text x="50%" y="54%" text-anchor="middle" font-size="70" fill="%23b36b00">ॐ</text></svg>';
+let currentUser=null;let data=null;let cart=[];let lastInvoiceHTML='';
+function users(){return JSON.parse(localStorage.getItem('sks_users')||'{}')}
+function saveUsers(u){localStorage.setItem('sks_users',JSON.stringify(u))}
+function createEmptyStore(username,storeName){return{username,profile:{name:storeName||'My General Store',bio:'Billing & Inventory App',phone:'',address:'',logo:DEFAULT_LOGO},products:[],purchases:[],sales:[]}}
+function boot(){let u=users();if(!u.admin){u.admin={password:'1234',store:createEmptyStore('admin','Shree Khatu Shayam General Store')};saveUsers(u)}currentUser=localStorage.getItem('sks_current_user');if(currentUser&&users()[currentUser]){data=users()[currentUser].store;showApp()}else showAuthScreen()}
+function showAuth(mode){document.getElementById('loginBox').classList.toggle('hidden',mode!=='login');document.getElementById('registerBox').classList.toggle('hidden',mode!=='register');document.getElementById('loginTab').classList.toggle('active',mode==='login');document.getElementById('registerTab').classList.toggle('active',mode==='register');document.getElementById('authMsg').innerText=''}
+function showAuthScreen(){document.getElementById('authScreen').classList.remove('hidden');document.getElementById('app').classList.add('hidden')}
+function registerUser(){let username=val('regUser').toLowerCase(),pass=val('regPass'),store=val('regStoreName');if(!username||!pass)return msg('Username aur password daalo');let u=users();if(u[username])return msg('Ye username already hai');u[username]={password:pass,store:createEmptyStore(username,store)};saveUsers(u);msg('Account ban gaya. Ab login karo.');showAuth('login')}
+function login(){let username=val('loginUser').toLowerCase(),pass=val('loginPass');let u=users();if(!u[username]||u[username].password!==pass)return msg('Galat username/password');currentUser=username;data=u[username].store;localStorage.setItem('sks_current_user',username);showApp()}
+function logout(){localStorage.removeItem('sks_current_user');currentUser=null;data=null;showAuthScreen()}
+function msg(t){document.getElementById('authMsg').innerText=t}
+function val(id){return document.getElementById(id).value.trim()}
+function num(id){return Number(document.getElementById(id).value||0)}
+function save(){let u=users();u[currentUser].store=data;saveUsers(u)}
+function showApp(){document.getElementById('authScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('reportDate').valueAsDate=new Date();refreshAll();openPage('dashboard')}
+function openPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');if(id==='reports')renderReports()}
+function refreshAll(){renderProfile();renderProducts();fillProductSelects();renderPurchases();renderCart();renderDashboard();renderReports()}
+function renderProfile(){let p=data.profile;['sideLogo','logoPreview'].forEach(id=>document.getElementById(id).src=p.logo||DEFAULT_LOGO);document.getElementById('sideStoreName').innerText=p.name;document.getElementById('sideUser').innerText='@'+currentUser;document.getElementById('topStoreName').innerText=p.name;document.getElementById('topBio').innerText=p.bio;document.getElementById('profileName').value=p.name;document.getElementById('profileBio').value=p.bio;document.getElementById('profilePhone').value=p.phone;document.getElementById('profileAddress').value=p.address;document.getElementById('previewName').innerText=p.name;document.getElementById('previewBio').innerText=p.bio;document.getElementById('previewPhone').innerText=p.phone}
+function previewLogo(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{document.getElementById('logoPreview').src=r.result};r.readAsDataURL(f)}
+function saveProfile(){let logo=document.getElementById('logoPreview').src;data.profile={name:val('profileName')||'My Store',bio:val('profileBio'),phone:val('profilePhone'),address:val('profileAddress'),logo};save();refreshAll();alert('Profile saved')}
+function saveProduct(){let id=val('productEditId');let p={id:id||Date.now().toString(),name:val('pName'),category:val('pCategory'),purchase:num('pPurchase'),sale:num('pSale'),stock:num('pStock')};if(!p.name)return alert('Product name daalo');let i=data.products.findIndex(x=>x.id===p.id);if(i>=0)data.products[i]=p;else data.products.push(p);save();clearProductForm();refreshAll()}
+function clearProductForm(){['productEditId','pName','pCategory','pPurchase','pSale','pStock'].forEach(id=>document.getElementById(id).value='')}
+function editProduct(id){let p=data.products.find(x=>x.id===id);if(!p)return;document.getElementById('productEditId').value=p.id;document.getElementById('pName').value=p.name;document.getElementById('pCategory').value=p.category;document.getElementById('pPurchase').value=p.purchase;document.getElementById('pSale').value=p.sale;document.getElementById('pStock').value=p.stock;openPage('products')}
+function deleteProduct(id){if(!confirm('Delete product?'))return;data.products=data.products.filter(p=>p.id!==id);save();refreshAll()}
+function renderProducts(){document.getElementById('productTable').innerHTML=data.products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td>₹${p.purchase}</td><td>₹${p.sale}</td><td>${p.stock}</td><td><button onclick="editProduct('${p.id}')">Edit</button> <button class="danger" onclick="deleteProduct('${p.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="6">No products</td></tr>'}
+function fillProductSelects(){let opts='<option value="">Select Product</option>'+data.products.map(p=>`<option value="${p.id}">${esc(p.name)} - Stock ${p.stock}</option>`).join('');document.getElementById('purProduct').innerHTML=opts;document.getElementById('saleProduct').innerHTML=opts}
+function savePurchase(){let pid=val('purProduct'),p=data.products.find(x=>x.id===pid);if(!p)return alert('Product select karo');let q=num('purQty'),rate=num('purRate')||p.purchase;if(q<=0)return alert('Qty daalo');p.stock+=q;p.purchase=rate;data.purchases.push({id:Date.now().toString(),date:new Date().toISOString(),productId:pid,productName:p.name,supplier:val('purSupplier'),qty:q,rate,total:q*rate});save();['purSupplier','purQty','purRate'].forEach(id=>document.getElementById(id).value='');refreshAll()}
+function renderPurchases(){document.getElementById('purchaseTable').innerHTML=data.purchases.slice().reverse().map(x=>`<tr><td>${date(x.date)}</td><td>${esc(x.productName)}</td><td>${esc(x.supplier)}</td><td>${x.qty}</td><td>₹${x.total}</td><td><button onclick="repeatPurchase('${x.id}')">Repeat</button></td></tr>`).join('')||'<tr><td colspan="6">No purchases</td></tr>'}
+function repeatPurchase(id){let x=data.purchases.find(a=>a.id===id);if(!x)return;document.getElementById('purProduct').value=x.productId;document.getElementById('purSupplier').value=x.supplier;document.getElementById('purQty').value=x.qty;document.getElementById('purRate').value=x.rate;openPage('purchase')}
+function addToCart(){let pid=val('saleProduct'),p=data.products.find(x=>x.id===pid),q=num('saleQty');if(!p)return alert('Product select karo');if(q<=0)return alert('Qty daalo');if(q>p.stock)return alert('Stock kam hai');cart.push({productId:p.id,name:p.name,qty:q,rate:p.sale,cost:p.purchase,total:q*p.sale,profit:q*(p.sale-p.purchase)});document.getElementById('saleQty').value='';renderCart()}
+function removeCart(i){cart.splice(i,1);renderCart()}
+function renderCart(){document.getElementById('cartTable').innerHTML=cart.map((c,i)=>`<tr><td>${esc(c.name)}</td><td>${c.qty}</td><td>₹${c.rate}</td><td>₹${c.total}</td><td><button class="danger" onclick="removeCart(${i})">X</button></td></tr>`).join('')||'<tr><td colspan="5">Cart empty</td></tr>';let t=cart.reduce((s,c)=>s+c.total,0);document.getElementById('cartTotal').innerText=t;renderInvoicePreview(false)}
+function saveBill(){if(cart.length===0)return alert('Cart empty');let bill={id:Date.now().toString(),date:new Date().toISOString(),customer:val('custName')||'Customer',phone:val('custPhone'),items:[...cart],total:cart.reduce((s,c)=>s+c.total,0),profit:cart.reduce((s,c)=>s+c.profit,0)};cart.forEach(c=>{let p=data.products.find(x=>x.id===c.productId);if(p)p.stock-=c.qty});data.sales.push(bill);lastInvoiceHTML=invoiceHTML(bill,false);save();cart=[];document.getElementById('custName').value='';document.getElementById('custPhone').value='';refreshAll();document.getElementById('invoicePreview').innerHTML=lastInvoiceHTML;alert('Bill saved')}
+function renderInvoicePreview(showProfit){let temp={id:'PREVIEW',date:new Date().toISOString(),customer:val('custName')||'Customer',phone:val('custPhone'),items:cart,total:cart.reduce((s,c)=>s+c.total,0),profit:cart.reduce((s,c)=>s+c.profit,0)};document.getElementById('invoicePreview').innerHTML=cart.length?invoiceHTML(temp,showProfit):'Cart me product add karte hi invoice yahan dikhega.'}
+function invoiceHTML(b,showProfit){let p=data.profile;return `<div class="invoice"><div class="invoice-head"><img src="${p.logo||DEFAULT_LOGO}"><h2>${esc(p.name)}</h2><p>${esc(p.bio||'')}</p><p>${esc(p.phone||'')} ${esc(p.address||'')}</p></div><p><b>Bill:</b> ${b.id}<br><b>Date:</b> ${date(b.date)}<br><b>Customer:</b> ${esc(b.customer)} ${esc(b.phone||'')}</p><table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>${b.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>₹${i.rate}</td><td>₹${i.total}</td></tr>`).join('')}</tbody></table><h2>Total: ₹${b.total}</h2>${showProfit?`<p>Profit/Loss: ₹${b.profit}</p>`:''}<p style="text-align:center">Thank You</p></div>`}
+function printInvoice(){let html=lastInvoiceHTML||document.getElementById('invoicePreview').innerHTML;if(!html||html.includes('Cart me'))return alert('Invoice preview empty hai');let old=document.body.innerHTML;document.body.innerHTML=`<div class="print-area">${html}</div>`;window.print();location.reload()}
+function renderDashboard(){document.getElementById('dashProducts').innerText=data.products.length;document.getElementById('dashStock').innerText=data.products.reduce((s,p)=>s+p.stock,0);let today=ymd(new Date());let sales=data.sales.filter(s=>ymd(new Date(s.date))===today);document.getElementById('dashSales').innerText='₹'+sales.reduce((a,b)=>a+b.total,0);document.getElementById('dashProfit').innerText='₹'+sales.reduce((a,b)=>a+b.profit,0);document.getElementById('lowStockList').innerHTML=data.products.filter(p=>p.stock<=5).map(p=>`<p>${esc(p.name)} - ${p.stock}</p>`).join('')||'<p>No low stock</p>'}
+function renderReports(){let d=val('reportDate')||ymd(new Date());let sales=data.sales.filter(s=>ymd(new Date(s.date))===d),purs=data.purchases.filter(p=>ymd(new Date(p.date))===d);let st=sales.reduce((a,b)=>a+b.total,0),pf=sales.reduce((a,b)=>a+b.profit,0),pt=purs.reduce((a,b)=>a+b.total,0);document.getElementById('reportBox').innerHTML=`<div class="report-content"><h2>${esc(data.profile.name)} - Daily Report</h2><p>Date: ${d}</p><h3>Sales: ₹${st}</h3><h3>Purchase: ₹${pt}</h3><h3>Profit/Loss: ₹${pf}</h3><h3>Bills</h3>${sales.map(s=>`<p>${date(s.date)} - ${esc(s.customer)} - ₹${s.total}</p>`).join('')||'No sales'}<h3>Purchases</h3>${purs.map(p=>`<p>${date(p.date)} - ${esc(p.productName)} - ₹${p.total}</p>`).join('')||'No purchases'}</div>`}
+function printReport(){let html=document.getElementById('reportBox').innerHTML;if(!html)return;let old=document.body.innerHTML;document.body.innerHTML=`<div class="print-area">${html}</div>`;window.print();location.reload()}
+function downloadBackup(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${currentUser}-store-backup.json`;a.click()}
+function restoreBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);save();refreshAll();alert('Backup restored')}catch(err){alert('Invalid backup file')}};r.readAsText(f)}
+function resetStore(){if(!confirm('Current store ka data delete hoga?'))return;data=createEmptyStore(currentUser,data.profile.name);save();refreshAll()}
+function date(d){return new Date(d).toLocaleString('en-IN')}function ymd(d){return d.toISOString().slice(0,10)}function esc(s){return String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+window.addEventListener('input',e=>{if(['custName','custPhone'].includes(e.target.id))renderInvoicePreview(false)});if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}document.addEventListener('DOMContentLoaded',boot);
