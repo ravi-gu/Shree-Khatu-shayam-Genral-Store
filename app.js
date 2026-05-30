@@ -1,36 +1,40 @@
-const LOGIN_USERNAME = "admin";
-const LOGIN_PASSWORD = "1234";
-
-function checkLogin() {
-  const isLoggedIn = localStorage.getItem("sks_logged_in");
-
-  if (isLoggedIn === "yes") {
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("appContent").style.display = "block";
-  } else {
-    document.getElementById("loginScreen").style.display = "flex";
-    document.getElementById("appContent").style.display = "none";
-  }
+// नया प्रोडक्ट डेटाबेस में भेजने के लिए
+function addStoreItem(itemName, itemPrice) {
+    db.collection("sks_products").add({
+        name: itemName,
+        price: itemPrice,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+        console.log("सामान सुरक्षित सेव हो गया!");
+    })
+    .catch((error) => {
+        console.error("एरर आया: ", error);
+    });
 }
-
-function login() {
-  const user = document.getElementById("loginUser").value.trim();
-  const pass = document.getElementById("loginPass").value.trim();
-
-  if (user === LOGIN_USERNAME && pass === LOGIN_PASSWORD) {
-    localStorage.setItem("sks_logged_in", "yes");
-    checkLogin();
-  } else {
-    document.getElementById("loginMsg").innerText = "गलत Username या Password";
-  }
-}
-
-function logout() {
-  localStorage.removeItem("sks_logged_in");
-  checkLogin();
-}
-
-document.addEventListener("DOMContentLoaded", checkLogin);
+// डेटाबेस से लाइव डेटा पढ़ना और स्क्रीन पर दिखाना
+db.collection("sks_products").orderBy("timestamp", "desc")
+.onSnapshot((snapshot) => {
+    let productHTML = "";
+    
+    snapshot.forEach((doc) => {
+        let product = doc.data();
+        
+        // यहाँ से आपके स्क्रीन की डिज़ाइन बनेगी
+        productHTML += `
+            <div class="product-card" style="border: 1px solid #ddd; padding: 10px; margin: 10px; border-radius: 8px;">
+                <h3>${product.name}</h3>
+                <p>कीमत: ₹${product.price}</p>
+            </div>
+        `;
+    });
+    
+    // यह index.html वाले 'product-list' div के अंदर डेटा डाल देगा
+    let container = document.getElementById("product-list");
+    if(container) {
+        container.innerHTML = productHTML;
+    }
+});
 const KEY='SKS_STORE_REAL_DATA_V1';
 let data=JSON.parse(localStorage.getItem(KEY)||'null') || {products:[], purchases:[], sales:[]};
 let cart=[];
