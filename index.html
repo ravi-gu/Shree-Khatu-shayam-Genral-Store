@@ -120,5 +120,29 @@
   <script src="app.js"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js');}</script>
 </div>
+          <div id="product-list"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // आपका Firebase कॉन्फ़िगरेशन
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSkIZLKkgdaK8jgJiPbP2klklBYB4l2Bk",
+      authDomain: "shayari-76c31.firebaseapp.com",
+      projectId: "shayari-76c31",
+      storageBucket: "shayari-76c31.firebasestorage.app",
+      messagingSenderId: "65887646075",
+      appId: "1:65887646075:web:2d5a4b7123d38038484dde",
+      measurementId: "G-W41JPKXMPD"
+    };
+
+    // Firebase चालू करें
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script src="app.js"></script>
+</body>
 </body>
 </html>
